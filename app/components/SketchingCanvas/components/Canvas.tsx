@@ -116,6 +116,7 @@ export const Canvas: React.FC<CanvasProps> = ({
               ? "grabbing"
               : "default"
             : "crosshair",
+        touchAction: "none",
       }}
       onMouseDown={(e) => handleMouseDown(e, startPan, handleShapeSelection)}
       onMouseMove={(e) => {
@@ -140,6 +141,73 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }}
       onContextMenu={(e) => e.preventDefault()}
+      onTouchStart={(e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const point = getCanvasPoint(touch.clientX, touch.clientY);
+        if (!point) return;
+
+        handleMouseDown(
+          {
+            button: 0,
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => { },
+            stopPropagation: () => { },
+            altKey: false,
+            shiftKey: false,
+          } as React.MouseEvent,
+          startPan,
+          handleShapeSelection
+        );
+      }}
+      onTouchMove={(e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const point = getCanvasPoint(touch.clientX, touch.clientY);
+        if (!point) return;
+
+        if (isResizing) {
+          handleResizeMove(
+            {
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              preventDefault: () => { },
+            } as React.MouseEvent,
+            isResizing,
+            calculateResize
+          );
+        } else {
+          handleMouseMove(
+            {
+              buttons: 1,
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              preventDefault: () => { },
+              stopPropagation: () => { },
+              altKey: false,
+            } as React.MouseEvent,
+            updatePan,
+            setPan
+          );
+        }
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        if (isResizing) {
+          handleResizeEnd(endResize);
+        } else {
+          handleMouseUp();
+        }
+      }}
+      onTouchCancel={(e) => {
+        e.preventDefault();
+        if (isResizing) {
+          handleResizeEnd(endResize);
+        } else {
+          handleMouseUp();
+        }
+      }}
     >
       <Grid zoom={zoom} pan={pan} />
 
@@ -148,6 +216,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: "0 0",
+          touchAction: "none",
         }}
       >
         <svg
@@ -157,10 +226,10 @@ export const Canvas: React.FC<CanvasProps> = ({
             height: viewBoxHeight,
             left: -padding + bounds.minX,
             top: -padding + bounds.minY,
+            touchAction: "none",
           }}
-          viewBox={`${-padding + bounds.minX} ${
-            -padding + bounds.minY
-          } ${viewBoxWidth} ${viewBoxHeight}`}
+          viewBox={`${-padding + bounds.minX} ${-padding + bounds.minY
+            } ${viewBoxWidth} ${viewBoxHeight}`}
         >
           {/* Render frames first (background) */}
           {sortedShapes

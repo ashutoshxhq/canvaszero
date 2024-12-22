@@ -91,19 +91,82 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  const handleTouchStart = (e: React.TouchEvent, handleIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const svg = (e.target as SVGElement).closest("svg");
+    if (!svg || !shape.startPoint || !shape.endPoint) return;
+
+    const rect = svg.getBoundingClientRect();
+    const touch = e.touches[0];
+    const startDrag: Point = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    };
+
+    const originalStartPoint = { ...shape.startPoint };
+    const originalEndPoint = { ...shape.endPoint };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length === 0) return;
+
+      const touch = e.touches[0];
+      const currentPoint: Point = {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top,
+      };
+
+      let newStartPoint: Point = { ...originalStartPoint };
+      let newEndPoint: Point = { ...originalEndPoint };
+
+      switch (handleIndex) {
+        case 0: // top-left
+          newStartPoint = currentPoint;
+          break;
+        case 1: // top-right
+          newStartPoint = { ...newStartPoint, y: currentPoint.y };
+          newEndPoint = { ...newEndPoint, x: currentPoint.x };
+          break;
+        case 2: // bottom-right
+          newEndPoint = currentPoint;
+          break;
+        case 3: // bottom-left
+          newStartPoint = { ...newStartPoint, x: currentPoint.x };
+          newEndPoint = { ...newEndPoint, y: currentPoint.y };
+          break;
+      }
+
+      onResize(newStartPoint, newEndPoint);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchcancel", handleTouchEnd);
+    };
+
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("touchend", handleTouchEnd);
+    document.addEventListener("touchcancel", handleTouchEnd);
+  };
+
   return (
     <>
       {handlePoints.map((point, index) => (
-        <g key={index} style={{ pointerEvents: "all" }}>
+        <g key={index} style={{ pointerEvents: "all", touchAction: "none" }}>
           <circle
             cx={point.x}
             cy={point.y}
-            r={4}
+            r={6}
             fill="white"
             stroke="#2563eb"
             strokeWidth={2}
-            style={{ cursor: "nwse-resize" }}
+            style={{ cursor: "nwse-resize", touchAction: "none" }}
             onMouseDown={(e) => handleMouseDown(e, index)}
+            onTouchStart={(e) => handleTouchStart(e, index)}
           />
         </g>
       ))}

@@ -36,24 +36,38 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({
   y,
   onMouseDown,
 }) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onMouseDown(position, {
+      clientX: e.touches[0].clientX,
+      clientY: e.touches[0].clientY,
+      preventDefault: () => { },
+      stopPropagation: () => { },
+    } as React.MouseEvent);
+  };
+
+  const handleSize = 8; // Increased size for better touch targets
+
   return (
-    <g>
+    <g style={{ touchAction: "none" }}>
       <circle
         cx={x}
         cy={y}
-        r={5}
+        r={handleSize + 1}
         fill="white"
         className="pointer-events-none"
       />
       <circle
         cx={x}
         cy={y}
-        r={4}
+        r={handleSize}
         fill="white"
         stroke="#2563eb"
         strokeWidth={1.5}
-        style={{ cursor: getCursor(position) }}
+        style={{ cursor: getCursor(position), touchAction: "none" }}
         onMouseDown={(e) => onMouseDown(position, e)}
+        onTouchStart={handleTouchStart}
       />
     </g>
   );
