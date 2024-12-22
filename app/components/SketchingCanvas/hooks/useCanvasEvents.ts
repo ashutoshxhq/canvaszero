@@ -28,6 +28,7 @@ export const useCanvasEvents = ({
   fillColor,
   strokeColor,
   onShapeUpdate,
+  onToolSelect,
   getCanvasPoint,
   updateShapePosition,
   canvasRef,
@@ -37,6 +38,7 @@ export const useCanvasEvents = ({
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasMoved, setHasMoved] = useState(false);
   const [previewShape, setPreviewShape] = useState<Shape | null>(null);
   const [currentPencilShape, setCurrentPencilShape] = useState<Shape | null>(
     null
@@ -67,6 +69,7 @@ export const useCanvasEvents = ({
       }
 
       setStartPoint(point);
+      setHasMoved(false);
 
       if (selectedTool === "select") {
         const clickedShape = shapes.find(shape => isPointInShape(shape, point));
@@ -127,6 +130,13 @@ export const useCanvasEvents = ({
       const currentPoint = getCanvasPoint(e.clientX, e.clientY);
       if (!currentPoint) return;
 
+      // Check if mouse has moved significantly from start point
+      const dx = currentPoint.x - startPoint.x;
+      const dy = currentPoint.y - startPoint.y;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        setHasMoved(true);
+      }
+
       if (isDrawing) {
         if (selectedTool === "pencil" && currentPencilShape) {
           const relativePoint = {
@@ -150,7 +160,7 @@ export const useCanvasEvents = ({
           setCurrentPencilShape(updatedShape);
           setPreviewShape(updatedShape);
         } else {
-          if (selectedTool !== "select") {
+          if (selectedTool !== "select" && hasMoved) {
             const shape = createShape(
               selectedTool,
               startPoint,
@@ -165,24 +175,21 @@ export const useCanvasEvents = ({
           }
         }
       } else if (isDragging && shapes.some((s) => s.isSelected)) {
-        // Get the updated positions from updateShapePosition
         const updatedShapes = updateShapePosition(
           shapes,
           startPoint,
           currentPoint
         );
 
-        // Create a map of original shapes for reference
         const originalShapesMap = new Map(shapes.map(s => [s.id, s]));
 
-        // Create a deep clone of the shapes while preserving all properties
         const clonedShapes = updatedShapes.map(shape => {
           const originalShape = originalShapesMap.get(shape.id);
           if (!originalShape) return shape;
 
           const baseShape = {
-            ...originalShape, // Start with all original properties
-            ...shape, // Override with updated position
+            ...originalShape,
+            ...shape,
             type: originalShape.type,
             id: originalShape.id,
             width: Math.max(1, shape.width),
@@ -195,7 +202,6 @@ export const useCanvasEvents = ({
             borderRadius: originalShape.borderRadius,
           };
 
-          // Add type-specific properties
           if (originalShape.type === 'frame') {
             return {
               ...baseShape,
@@ -217,14 +223,10 @@ export const useCanvasEvents = ({
           return baseShape;
         });
 
-        // Sort the shapes to maintain the correct rendering order
         const sortedShapes = sortShapesByType(clonedShapes);
-
-        // Update the shapes
         onShapeUpdate(sortedShapes);
         setStartPoint(currentPoint);
       } else if (selectionBox) {
-        // Update selection box and select shapes within it
         setSelectionBox(prev => ({ ...prev!, endPoint: currentPoint }));
         const updatedShapes = shapes.map(shape => ({
           ...shape,
@@ -246,6 +248,7 @@ export const useCanvasEvents = ({
       isDragging,
       currentPencilShape,
       selectionBox,
+      hasMoved,
       createShape,
       updateShapePosition,
       onShapeUpdate,
@@ -255,22 +258,40 @@ export const useCanvasEvents = ({
 
   const handleMouseUp = useCallback(
     (stopPan: () => void) => {
-      if (isDrawing && currentPencilShape) {
-        onShapeUpdate([...shapes, currentPencilShape]);
-        setCurrentPencilShape(null);
-      } else if (previewShape) {
-        onShapeUpdate([...shapes, previewShape]);
+      if (isDrawing) {
+        if (currentPencilShape) {
+          onShapeUpdate([...shapes, currentPencilShape]);
+          setCurrentPencilShape(null);
+        } else if (!hasMoved && startPoint && selectedTool !== "select") {
+          // Create shape with minimum size if it was just a click (no drag)
+          const shape = createShape(
+            selectedTool,
+            startPoint,
+            startPoint, // Same point to trigger minimum size
+            fillColor,
+            strokeColor,
+            shapes
+          );
+          if (shape) {
+            onShapeUpdate([...shapes, shape]);
+            // Switch back to select tool after creating shape with click
+            onToolSelect("select");
+          }
+        } else if (previewShape) {
+          onShapeUpdate([...shapes, previewShape]);
+        }
       }
 
       // Clean up all state
       setStartPoint(null);
       setIsDrawing(false);
       setIsDragging(false);
+      setHasMoved(false);
       setPreviewShape(null);
       setSelectionBox(null);
       stopPan();
     },
-    [shapes, isDrawing, currentPencilShape, previewShape, onShapeUpdate]
+    [shapes, isDrawing, currentPencilShape, previewShape, hasMoved, startPoint, selectedTool, fillColor, strokeColor, createShape, onShapeUpdate, onToolSelect]
   );
 
   return {

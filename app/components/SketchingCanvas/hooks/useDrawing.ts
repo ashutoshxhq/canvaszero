@@ -12,6 +12,10 @@ export const useDrawing = () => {
       strokeColor: string,
       shapes: Shape[] = []
     ): Shape | null => {
+      const minSize = 80; // Minimum size for regular shapes
+      const frameMinWidth = 1200; // Minimum width for frames
+      const frameMinHeight = 720; // Minimum height for frames
+
       const baseShape = {
         id: Math.random().toString(36).substr(2, 9),
         type,
@@ -34,22 +38,45 @@ export const useDrawing = () => {
         };
       }
 
-      const width = endPoint.x - startPoint.x;
-      const height = endPoint.y - startPoint.y;
+      let width = endPoint.x - startPoint.x;
+      let height = endPoint.y - startPoint.y;
+
+      // Only apply minimum size when exactly clicked (no drag)
+      const isClick = width === 0 && height === 0;
 
       // For line tool, allow zero width or height
-      if (type !== "line" && width === 0 && height === 0) {
-        return null;
+      if (type !== "line" && isClick) {
+        // Set minimum dimensions instead of returning null
+        if (type === "frame") {
+          width = frameMinWidth;
+          height = frameMinHeight;
+        } else {
+          width = minSize;
+          height = minSize;
+        }
+        endPoint = {
+          x: startPoint.x + width,
+          y: startPoint.y + height
+        };
       }
 
       // Special handling for line tool to keep start point fixed
       if (type === "line") {
+        if (isClick) {
+          // For line tool, create a diagonal line when clicked
+          width = minSize;
+          height = minSize;
+          endPoint = {
+            x: startPoint.x + width,
+            y: startPoint.y + height
+          };
+        }
         return {
           ...baseShape,
           x: startPoint.x,
           y: startPoint.y,
-          width: endPoint.x - startPoint.x,
-          height: endPoint.y - startPoint.y,
+          width,
+          height,
           startPoint: { x: startPoint.x, y: startPoint.y },
           endPoint: { x: endPoint.x, y: endPoint.y }
         };
@@ -58,8 +85,9 @@ export const useDrawing = () => {
       // Calculate position and dimensions, handling negative values
       const x = width < 0 ? endPoint.x : startPoint.x;
       const y = height < 0 ? endPoint.y : startPoint.y;
-      const absWidth = Math.abs(width);
-      const absHeight = Math.abs(height);
+      // Only apply minimum size on click, otherwise use actual size
+      const absWidth = isClick ? (type === "frame" ? frameMinWidth : minSize) : Math.abs(width);
+      const absHeight = isClick ? (type === "frame" ? frameMinHeight : minSize) : Math.abs(height);
 
       const adjustedWidth =
         type === "circle" ? Math.max(absWidth, absHeight) : absWidth;
@@ -136,8 +164,5 @@ export const useDrawing = () => {
     []
   );
 
-  return {
-    createShape,
-    updateShapePosition,
-  };
+  return { createShape, updateShapePosition };
 };
