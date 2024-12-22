@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canvaszero-webapp-deployment
+  labels:
+    name: canvaszero-webapp-deployment
+    app: canvaszero
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canvaszero
+  template:
+    metadata:
+      name: canvaszero-webapp-pod
+      labels:
+        app: canvaszero
+        name: canvaszero-webapp-pod
+    spec:
+      containers:
+        - name: canvaszero-webapp-pod
+          image: 381492239882.dkr.ecr.us-west-2.amazonaws.com/canvaszero-webapp:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+          envFrom:
+            - secretRef:
+                name: canvaszero-webapp-secrets
