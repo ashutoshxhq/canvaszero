@@ -1,2 +1,2 @@
-# canvaszero-webapp
+# Canvas Zero Webapp
 Webapp for Canvas Zero
