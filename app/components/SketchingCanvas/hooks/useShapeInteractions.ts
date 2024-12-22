@@ -12,21 +12,40 @@ export const useShapeInteractions = ({ onShapeUpdate }: UseShapeInteractionsProp
     point: Point,
     isShiftKey: boolean
   ): { isDragging: boolean } => {
-    const clickedShape = [...shapes].reverse().find(shape => 
+    const clickedShape = [...shapes].reverse().find(shape =>
       isPointInShape(shape, point)
     );
 
     if (clickedShape) {
-      const updatedShapes = shapes.map(shape => ({
-        ...shape,
-        isSelected: shape === clickedShape && !isShiftKey ? true : 
-                   isShiftKey ? shape.isSelected || shape === clickedShape :
-                   false
-      }));
-      onShapeUpdate(updatedShapes);
+      // If we clicked on a shape
+      if (isShiftKey) {
+        // If shift is held, toggle the clicked shape's selection
+        const updatedShapes = shapes.map(shape => ({
+          ...shape,
+          isSelected: shape.id === clickedShape.id ? !shape.isSelected : shape.isSelected
+        }));
+        onShapeUpdate(updatedShapes);
+      } else {
+        // If shift is not held
+        if (clickedShape.isSelected && shapes.filter(s => s.isSelected).length > 1) {
+          // If we clicked on an already selected shape and there are multiple selections,
+          // keep all selections to allow dragging
+          return { isDragging: true };
+        } else {
+          // Otherwise, select only the clicked shape
+          const updatedShapes = shapes.map(shape => ({
+            ...shape,
+            isSelected: shape.id === clickedShape.id
+          }));
+          onShapeUpdate(updatedShapes);
+        }
+      }
       return { isDragging: true };
     } else {
-      onShapeUpdate(shapes.map(shape => ({ ...shape, isSelected: false })));
+      // If we clicked on empty space, clear selection unless shift is held
+      if (!isShiftKey) {
+        onShapeUpdate(shapes.map(shape => ({ ...shape, isSelected: false })));
+      }
       return { isDragging: false };
     }
   }, [onShapeUpdate]);

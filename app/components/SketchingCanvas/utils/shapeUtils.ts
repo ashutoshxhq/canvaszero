@@ -29,8 +29,58 @@ export const transformPoints = (
   }));
 };
 
+// Calculate distance from point to line segment
+const distanceToLineSegment = (
+  point: Point,
+  lineStart: Point,
+  lineEnd: Point
+): number => {
+  const { x: px, y: py } = point;
+  const { x: x1, y: y1 } = lineStart;
+  const { x: x2, y: y2 } = lineEnd;
+
+  const A = px - x1;
+  const B = py - y1;
+  const C = x2 - x1;
+  const D = y2 - y1;
+
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = -1;
+
+  if (lenSq !== 0) {
+    param = dot / lenSq;
+  }
+
+  let xx, yy;
+
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+
+  const dx = px - xx;
+  const dy = py - yy;
+
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
 export const isPointInShape = (shape: Shape, point: Point): boolean => {
   const { x, y } = point;
+
+  if (shape.type === "line") {
+    const lineStart = { x: shape.x, y: shape.y };
+    const lineEnd = { x: shape.x + shape.width, y: shape.y + shape.height };
+    // Consider the point within the line if it's within 5 pixels of the line segment
+    return distanceToLineSegment(point, lineStart, lineEnd) <= 5;
+  }
+
   const shapeBox = {
     x: shape.x,
     y: shape.y,
