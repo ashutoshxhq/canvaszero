@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
-import { Point, Shape, Tool } from "../types/drawing";
+import { Point, Shape, Tool, SelectionBox } from "../types/drawing";
 import { useDrawing } from "./useDrawing";
-import { getBoundingBox } from "../utils/shapeUtils";
+import { getBoundingBox, isPointInShape, isShapeInSelectionBox } from "../utils/shapeUtils";
+import { sortShapesByType } from "../utils/frameUtils";
 
 interface UseCanvasEventsProps {
   shapes: Shape[];
@@ -16,6 +17,9 @@ interface UseCanvasEventsProps {
     startPoint: Point,
     currentPoint: Point
   ) => Shape[];
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+  zoom: number;
+  pan: Point;
 }
 
 export const useCanvasEvents = ({
@@ -26,6 +30,9 @@ export const useCanvasEvents = ({
   onShapeUpdate,
   getCanvasPoint,
   updateShapePosition,
+  canvasRef,
+  zoom,
+  pan,
 }: UseCanvasEventsProps) => {
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -34,6 +41,7 @@ export const useCanvasEvents = ({
   const [currentPencilShape, setCurrentPencilShape] = useState<Shape | null>(
     null
   );
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
 
   const { createShape } = useDrawing();
 
@@ -50,8 +58,10 @@ export const useCanvasEvents = ({
       const point = getCanvasPoint(e.clientX, e.clientY);
       if (!point) return;
 
-      // Handle right-click or alt+left-click for panning
-      if (e.button === 2 || (e.button === 0 && e.altKey)) {
+      // Handle right-click, middle-click, or alt+left-click for panning
+      if (e.button === 2 || e.button === 1 || (e.button === 0 && e.altKey)) {
+        e.preventDefault(); // Prevent default middle-click behavior
+        e.stopPropagation(); // Stop event propagation
         startPan(e);
         return;
       }
@@ -59,12 +69,22 @@ export const useCanvasEvents = ({
       setStartPoint(point);
 
       if (selectedTool === "select") {
-        const { isDragging: newIsDragging } = handleShapeSelection(
-          shapes,
-          point,
-          e.shiftKey
-        );
-        setIsDragging(newIsDragging);
+        const clickedShape = shapes.find(shape => isPointInShape(shape, point));
+        if (clickedShape) {
+          const { isDragging: newIsDragging } = handleShapeSelection(
+            shapes,
+            point,
+            e.shiftKey
+          );
+          setIsDragging(newIsDragging);
+        } else {
+          // Start selection box if no shape was clicked
+          setSelectionBox({ startPoint: point, endPoint: point });
+          if (!e.shiftKey) {
+            // Clear selection if shift is not held
+            onShapeUpdate(shapes.map(shape => ({ ...shape, isSelected: false })));
+          }
+        }
       } else if (selectedTool === "pencil") {
         const newShape = createShape(
           "pencil",
@@ -84,7 +104,7 @@ export const useCanvasEvents = ({
         setIsDrawing(true);
       }
     },
-    [shapes, selectedTool, fillColor, strokeColor, getCanvasPoint, createShape]
+    [shapes, selectedTool, fillColor, strokeColor, getCanvasPoint, createShape, onShapeUpdate]
   );
 
   const handleMouseMove = useCallback(
@@ -93,6 +113,15 @@ export const useCanvasEvents = ({
       updatePan: (e: React.MouseEvent, prevPan: Point) => Point,
       setPan: (pan: Point) => void
     ) => {
+      // Handle panning first, before checking startPoint
+      if (e.buttons === 2 || e.buttons === 4 || (e.buttons === 1 && e.altKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        const newPan = updatePan(e, pan);
+        setPan(newPan);
+        return;
+      }
+
       if (!startPoint) return;
 
       const currentPoint = getCanvasPoint(e.clientX, e.clientY);
@@ -136,15 +165,75 @@ export const useCanvasEvents = ({
           }
         }
       } else if (isDragging && shapes.some((s) => s.isSelected)) {
+        // Get the updated positions from updateShapePosition
         const updatedShapes = updateShapePosition(
           shapes,
           startPoint,
           currentPoint
         );
-        onShapeUpdate(updatedShapes);
+
+        // Create a map of original shapes for reference
+        const originalShapesMap = new Map(shapes.map(s => [s.id, s]));
+
+        // Create a deep clone of the shapes while preserving all properties
+        const clonedShapes = updatedShapes.map(shape => {
+          const originalShape = originalShapesMap.get(shape.id);
+          if (!originalShape) return shape;
+
+          const baseShape = {
+            ...originalShape, // Start with all original properties
+            ...shape, // Override with updated position
+            type: originalShape.type,
+            id: originalShape.id,
+            width: Math.max(1, shape.width),
+            height: Math.max(1, shape.height),
+            scale: { ...originalShape.scale },
+            isSelected: originalShape.isSelected,
+            fillColor: originalShape.fillColor,
+            strokeColor: originalShape.strokeColor,
+            rotation: originalShape.rotation,
+            borderRadius: originalShape.borderRadius,
+          };
+
+          // Add type-specific properties
+          if (originalShape.type === 'frame') {
+            return {
+              ...baseShape,
+              name: originalShape.name,
+            };
+          } else if (originalShape.type === 'pencil') {
+            return {
+              ...baseShape,
+              points: originalShape.points ? [...originalShape.points] : [],
+            };
+          } else if (originalShape.type === 'line') {
+            return {
+              ...baseShape,
+              startPoint: originalShape.startPoint ? { ...originalShape.startPoint } : undefined,
+              endPoint: originalShape.endPoint ? { ...originalShape.endPoint } : undefined,
+            };
+          }
+
+          return baseShape;
+        });
+
+        // Sort the shapes to maintain the correct rendering order
+        const sortedShapes = sortShapesByType(clonedShapes);
+
+        // Update the shapes
+        onShapeUpdate(sortedShapes);
         setStartPoint(currentPoint);
-      } else if (e.buttons === 2 || (e.buttons === 1 && e.altKey)) {
-        setPan(updatePan(e, { x: 0, y: 0 }));
+      } else if (selectionBox) {
+        // Update selection box and select shapes within it
+        setSelectionBox(prev => ({ ...prev!, endPoint: currentPoint }));
+        const updatedShapes = shapes.map(shape => ({
+          ...shape,
+          isSelected: isShapeInSelectionBox(shape, {
+            startPoint: selectionBox.startPoint,
+            endPoint: currentPoint
+          })
+        }));
+        onShapeUpdate(updatedShapes);
       }
     },
     [
@@ -156,6 +245,7 @@ export const useCanvasEvents = ({
       isDrawing,
       isDragging,
       currentPencilShape,
+      selectionBox,
       createShape,
       updateShapePosition,
       onShapeUpdate,
@@ -165,19 +255,22 @@ export const useCanvasEvents = ({
 
   const handleMouseUp = useCallback(
     (stopPan: () => void) => {
-      if (previewShape) {
-        // Add the new shape without selecting it
-        const newShapes = [...shapes, previewShape];
-        onShapeUpdate(newShapes);
+      if (isDrawing && currentPencilShape) {
+        onShapeUpdate([...shapes, currentPencilShape]);
+        setCurrentPencilShape(null);
+      } else if (previewShape) {
+        onShapeUpdate([...shapes, previewShape]);
       }
-      stopPan();
+
+      // Clean up all state
+      setStartPoint(null);
       setIsDrawing(false);
       setIsDragging(false);
-      setStartPoint(null);
       setPreviewShape(null);
-      setCurrentPencilShape(null);
+      setSelectionBox(null);
+      stopPan();
     },
-    [shapes, previewShape, onShapeUpdate]
+    [shapes, isDrawing, currentPencilShape, previewShape, onShapeUpdate]
   );
 
   return {
@@ -185,6 +278,7 @@ export const useCanvasEvents = ({
     isDrawing,
     isDragging,
     previewShape,
+    selectionBox,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,

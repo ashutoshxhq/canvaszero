@@ -1,12 +1,12 @@
 import type { Route } from "./+types/home";
 import SketchingCanvas from "~/components/SketchingCanvas/SketchingCanvas";
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "CanvasZero - Build WebApp from Sketches" },
+    { title: "Canvas Zero - Build apps from wireframes using AI" },
     {
       name: "description",
-      content: "Build WebApps from Sketches using Canvaszero",
+      content: "Build apps from wireframes using AI",
     },
   ];
 }

@@ -4,6 +4,7 @@ import { Toolbar } from "./components/Toolbar";
 import { Tool, Shape } from "./types/drawing";
 import { useHistory } from "./hooks/useHistory";
 import { useKeyboard } from "./hooks/useKeyboard";
+import { useCopyPaste } from "./hooks/useCopyPaste";
 
 function SketchingCanvas() {
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
@@ -13,7 +14,18 @@ function SketchingCanvas() {
   const { shapes, pushHistory, undo, redo } = useHistory();
 
   const handleShapeUpdate = (newShapes: Shape[]) => {
+    console.log('handleShapeUpdate called with shapes:', newShapes);
+    // Update color pickers when shape selection changes
+    const selectedShapes = newShapes.filter(shape => shape.isSelected);
+    if (selectedShapes.length > 0) {
+      // Use the last selected shape's colors
+      const lastSelected = selectedShapes[selectedShapes.length - 1];
+      setFillColor(lastSelected.fillColor);
+      setStrokeColor(lastSelected.strokeColor);
+    }
+    console.log('Pushing to history:', newShapes);
     pushHistory([...newShapes]);
+    console.log('After pushing to history');
   };
 
   const handleToolChange = (tool: Tool) => {
@@ -34,8 +46,36 @@ function SketchingCanvas() {
     pushHistory(updatedShapes);
   };
 
-  // Add keyboard delete handling
-  useKeyboard(handleDelete);
+  // Add copy-paste functionality
+  const { handleCopy, handlePaste } = useCopyPaste({
+    shapes,
+    onShapeUpdate: handleShapeUpdate,
+  });
+
+  // Add keyboard handlers for delete, copy, and paste
+  useKeyboard({
+    onDelete: handleDelete,
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+  });
+
+  const handleFillColorChange = (color: string) => {
+    setFillColor(color);
+    // Update selected shapes with new fill color
+    const updatedShapes = shapes.map(shape =>
+      shape.isSelected ? { ...shape, fillColor: color } : shape
+    );
+    pushHistory(updatedShapes);
+  };
+
+  const handleStrokeColorChange = (color: string) => {
+    setStrokeColor(color);
+    // Update selected shapes with new stroke color
+    const updatedShapes = shapes.map(shape =>
+      shape.isSelected ? { ...shape, strokeColor: color } : shape
+    );
+    pushHistory(updatedShapes);
+  };
 
   return (
     <div className="h-screen w-screen bg-gray-50 flex flex-col">
@@ -56,8 +96,8 @@ function SketchingCanvas() {
         strokeColor={strokeColor}
         isToolLocked={isToolLocked}
         onToolSelect={handleToolChange}
-        onFillColorChange={setFillColor}
-        onStrokeColorChange={setStrokeColor}
+        onFillColorChange={handleFillColorChange}
+        onStrokeColorChange={handleStrokeColorChange}
         onUndo={undo}
         onRedo={redo}
         onDelete={handleDelete}

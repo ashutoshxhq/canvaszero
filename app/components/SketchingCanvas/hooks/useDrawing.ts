@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Point, Shape, ShapeType } from "../types/drawing";
-import { getNextFrameNumber } from "../utils/frameUtils";
+import { getNextFrameNumber, getContainingFrame } from "../utils/frameUtils";
 
 export const useDrawing = () => {
   const createShape = useCallback(
@@ -42,15 +42,29 @@ export const useDrawing = () => {
         return null;
       }
 
-      const x = startPoint.x;
-      const y = startPoint.y;
+      // Special handling for line tool to keep start point fixed
+      if (type === "line") {
+        return {
+          ...baseShape,
+          x: startPoint.x,
+          y: startPoint.y,
+          width: endPoint.x - startPoint.x,
+          height: endPoint.y - startPoint.y,
+          startPoint: { x: startPoint.x, y: startPoint.y },
+          endPoint: { x: endPoint.x, y: endPoint.y }
+        };
+      }
+
+      // Calculate position and dimensions, handling negative values
+      const x = width < 0 ? endPoint.x : startPoint.x;
+      const y = height < 0 ? endPoint.y : startPoint.y;
+      const absWidth = Math.abs(width);
+      const absHeight = Math.abs(height);
 
       const adjustedWidth =
-        type === "circle" ? Math.max(Math.abs(width), Math.abs(height)) : width;
+        type === "circle" ? Math.max(absWidth, absHeight) : absWidth;
       const adjustedHeight =
-        type === "circle"
-          ? Math.max(Math.abs(width), Math.abs(height))
-          : height;
+        type === "circle" ? Math.max(absWidth, absHeight) : absHeight;
 
       const shape: Shape = {
         ...baseShape,
@@ -71,13 +85,30 @@ export const useDrawing = () => {
 
   const updateShapePosition = useCallback(
     (shapes: Shape[], startPoint: Point, currentPoint: Point): Shape[] => {
+      console.log('updateShapePosition called with:', { shapes, startPoint, currentPoint });
       const dx = currentPoint.x - startPoint.x;
       const dy = currentPoint.y - startPoint.y;
 
-      return shapes.map((shape) => {
-        if (!shape.isSelected) return shape;
+      // Get all selected shapes
+      const selectedShapes = shapes.filter(s => s.isSelected);
 
-        if (shape.type === "pencil" && shape.points) {
+      // Get all frames
+      const frames = shapes.filter(s => s.type === 'frame');
+
+      // Create a map of shapes to their containing frames
+      const shapeFrameMap = new Map<string, Shape | null>();
+      shapes.forEach(shape => {
+        if (shape.type !== 'frame') {
+          shapeFrameMap.set(shape.id, getContainingFrame(shape, frames));
+        }
+      });
+
+      // Track which frames are moving
+      const movingFrames = new Set(selectedShapes.filter(s => s.type === 'frame').map(f => f.id));
+
+      const updatedShapes = shapes.map((shape) => {
+        // If the shape is selected, move it
+        if (shape.isSelected) {
           return {
             ...shape,
             x: shape.x + dx,
@@ -85,12 +116,22 @@ export const useDrawing = () => {
           };
         }
 
-        return {
-          ...shape,
-          x: shape.x + dx,
-          y: shape.y + dy,
-        };
+        // If the shape is inside a moving frame, move it along with the frame
+        const containingFrame = shapeFrameMap.get(shape.id);
+        if (containingFrame && movingFrames.has(containingFrame.id)) {
+          return {
+            ...shape,
+            x: shape.x + dx,
+            y: shape.y + dy,
+          };
+        }
+
+        // Otherwise, keep the shape as is
+        return shape;
       });
+
+      console.log('updateShapePosition returning:', updatedShapes);
+      return updatedShapes;
     },
     []
   );

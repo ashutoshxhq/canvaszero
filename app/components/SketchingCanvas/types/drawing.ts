@@ -8,8 +8,7 @@ export type ShapeType =
   | "circle"
   | "frame"
   | "pencil"
-  | "line"
-  | "text";
+  | "line";
 
 export type ResizeHandle =
   | "top-left"
@@ -41,11 +40,14 @@ export type Shape = {
   borderRadius?: number;
   startPoint?: Point;
   endPoint?: Point;
-  text?: string;
-  fontSize?: number;
 };
 
 export type Tool = ShapeType | "select";
+
+export type SelectionBox = {
+  startPoint: Point;
+  endPoint: Point;
+};
 
 export type ResizeData = {
   originalShape: Shape;
