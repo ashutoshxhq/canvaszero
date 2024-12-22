@@ -74,7 +74,6 @@ export const Canvas: React.FC<CanvasProps> = ({
     pan,
   });
 
-  // Wrap the base handleMouseUp to include the onShapeComplete callback
   const handleMouseUp = () => {
     baseHandleMouseUp(stopPan);
     if (previewShape) {
@@ -91,8 +90,6 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [handleWheel]);
 
   const sortedShapes = sortShapesByType(shapes);
-  console.log('Canvas render - All shapes:', shapes);
-  console.log('Canvas render - Sorted shapes:', sortedShapes);
 
   const bounds = shapes.reduce(
     (acc, shape) => ({
@@ -101,7 +98,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       maxX: Math.max(acc.maxX, shape.x + shape.width),
       maxY: Math.max(acc.maxY, shape.y + shape.height),
     }),
-    { minX: 0, minY: 0, maxX: 2000, maxY: 2000 }
+    { minX: 0, minY: 0, maxX: 2000, maxY: 2000 },
   );
 
   const padding = 1000;
@@ -161,48 +158,55 @@ export const Canvas: React.FC<CanvasProps> = ({
             left: -padding + bounds.minX,
             top: -padding + bounds.minY,
           }}
-          viewBox={`${-padding + bounds.minX} ${-padding + bounds.minY
-            } ${viewBoxWidth} ${viewBoxHeight}`}
+          viewBox={`${-padding + bounds.minX} ${
+            -padding + bounds.minY
+          } ${viewBoxWidth} ${viewBoxHeight}`}
         >
           {/* Render frames first (background) */}
-          {sortedShapes.filter(shape => shape.type === 'frame').map((shape) => {
-            console.log('Rendering frame:', shape);
-            return (
-              <g key={shape.id} className="frame-layer">
-                <ShapeRenderer
-                  shape={shape}
-                  isSelected={shape.isSelected}
-                  onResizeStart={(handle, e) =>
-                    handleResizeStart(handle, e, startResize)
-                  }
-                />
-              </g>
-            );
-          })}
+          {sortedShapes
+            .filter((shape) => shape.type === "frame")
+            .map((shape) => {
+              return (
+                <g key={shape.id} className="frame-layer">
+                  <ShapeRenderer
+                    shape={shape}
+                    isSelected={shape.isSelected}
+                    onResizeStart={(handle, e) =>
+                      handleResizeStart(handle, e, startResize)
+                    }
+                  />
+                </g>
+              );
+            })}
 
           {/* Render non-frame shapes on top */}
-          {sortedShapes.filter(shape => shape.type !== 'frame').map((shape) => {
-            console.log('Rendering non-frame shape:', shape);
-            return (
-              <g key={shape.id} className="shape-layer">
-                <ShapeRenderer
-                  shape={shape}
-                  isSelected={shape.isSelected}
-                  onResizeStart={(handle, e) =>
-                    handleResizeStart(handle, e, startResize)
-                  }
-                />
-              </g>
-            );
-          })}
+          {sortedShapes
+            .filter((shape) => shape.type !== "frame")
+            .map((shape) => {
+              return (
+                <g key={shape.id} className="shape-layer">
+                  <ShapeRenderer
+                    shape={shape}
+                    isSelected={shape.isSelected}
+                    onResizeStart={(handle, e) =>
+                      handleResizeStart(handle, e, startResize)
+                    }
+                  />
+                </g>
+              );
+            })}
 
           {previewShape && <ShapeRenderer shape={previewShape} />}
           {selectionBox && (
             <rect
               x={Math.min(selectionBox.startPoint.x, selectionBox.endPoint.x)}
               y={Math.min(selectionBox.startPoint.y, selectionBox.endPoint.y)}
-              width={Math.abs(selectionBox.endPoint.x - selectionBox.startPoint.x)}
-              height={Math.abs(selectionBox.endPoint.y - selectionBox.startPoint.y)}
+              width={Math.abs(
+                selectionBox.endPoint.x - selectionBox.startPoint.x,
+              )}
+              height={Math.abs(
+                selectionBox.endPoint.y - selectionBox.startPoint.y,
+              )}
               fill="rgba(37, 99, 235, 0.1)"
               stroke="#2563eb"
               strokeWidth="1"

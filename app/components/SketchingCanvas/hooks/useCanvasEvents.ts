@@ -1,7 +1,11 @@
 import { useCallback, useState } from "react";
 import { Point, Shape, Tool, SelectionBox } from "../types/drawing";
 import { useDrawing } from "./useDrawing";
-import { getBoundingBox, isPointInShape, isShapeInSelectionBox } from "../utils/shapeUtils";
+import {
+  getBoundingBox,
+  isPointInShape,
+  isShapeInSelectionBox,
+} from "../utils/shapeUtils";
 import { sortShapesByType } from "../utils/frameUtils";
 
 interface UseCanvasEventsProps {
@@ -15,7 +19,7 @@ interface UseCanvasEventsProps {
   updateShapePosition: (
     shapes: Shape[],
     startPoint: Point,
-    currentPoint: Point
+    currentPoint: Point,
   ) => Shape[];
   canvasRef: React.RefObject<HTMLDivElement | null>;
   zoom: number;
@@ -41,7 +45,7 @@ export const useCanvasEvents = ({
   const [hasMoved, setHasMoved] = useState(false);
   const [previewShape, setPreviewShape] = useState<Shape | null>(null);
   const [currentPencilShape, setCurrentPencilShape] = useState<Shape | null>(
-    null
+    null,
   );
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
 
@@ -54,16 +58,15 @@ export const useCanvasEvents = ({
       handleShapeSelection: (
         shapes: Shape[],
         point: Point,
-        isShiftKey: boolean
-      ) => { isDragging: boolean }
+        isShiftKey: boolean,
+      ) => { isDragging: boolean },
     ) => {
       const point = getCanvasPoint(e.clientX, e.clientY);
       if (!point) return;
 
-      // Handle right-click, middle-click, or alt+left-click for panning
       if (e.button === 2 || e.button === 1 || (e.button === 0 && e.altKey)) {
-        e.preventDefault(); // Prevent default middle-click behavior
-        e.stopPropagation(); // Stop event propagation
+        e.preventDefault();
+        e.stopPropagation();
         startPan(e);
         return;
       }
@@ -72,20 +75,22 @@ export const useCanvasEvents = ({
       setHasMoved(false);
 
       if (selectedTool === "select") {
-        const clickedShape = shapes.find(shape => isPointInShape(shape, point));
+        const clickedShape = shapes.find((shape) =>
+          isPointInShape(shape, point),
+        );
         if (clickedShape) {
           const { isDragging: newIsDragging } = handleShapeSelection(
             shapes,
             point,
-            e.shiftKey
+            e.shiftKey,
           );
           setIsDragging(newIsDragging);
         } else {
-          // Start selection box if no shape was clicked
           setSelectionBox({ startPoint: point, endPoint: point });
           if (!e.shiftKey) {
-            // Clear selection if shift is not held
-            onShapeUpdate(shapes.map(shape => ({ ...shape, isSelected: false })));
+            onShapeUpdate(
+              shapes.map((shape) => ({ ...shape, isSelected: false })),
+            );
           }
         }
       } else if (selectedTool === "pencil") {
@@ -95,7 +100,7 @@ export const useCanvasEvents = ({
           point,
           fillColor,
           strokeColor,
-          shapes
+          shapes,
         );
         if (newShape) {
           newShape.points = [{ x: 0, y: 0 }];
@@ -107,16 +112,23 @@ export const useCanvasEvents = ({
         setIsDrawing(true);
       }
     },
-    [shapes, selectedTool, fillColor, strokeColor, getCanvasPoint, createShape, onShapeUpdate]
+    [
+      shapes,
+      selectedTool,
+      fillColor,
+      strokeColor,
+      getCanvasPoint,
+      createShape,
+      onShapeUpdate,
+    ],
   );
 
   const handleMouseMove = useCallback(
     (
       e: React.MouseEvent,
       updatePan: (e: React.MouseEvent, prevPan: Point) => Point,
-      setPan: (pan: Point) => void
+      setPan: (pan: Point) => void,
     ) => {
-      // Handle panning first, before checking startPoint
       if (e.buttons === 2 || e.buttons === 4 || (e.buttons === 1 && e.altKey)) {
         e.preventDefault();
         e.stopPropagation();
@@ -130,7 +142,6 @@ export const useCanvasEvents = ({
       const currentPoint = getCanvasPoint(e.clientX, e.clientY);
       if (!currentPoint) return;
 
-      // Check if mouse has moved significantly from start point
       const dx = currentPoint.x - startPoint.x;
       const dy = currentPoint.y - startPoint.y;
       if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
@@ -167,7 +178,7 @@ export const useCanvasEvents = ({
               currentPoint,
               fillColor,
               strokeColor,
-              shapes
+              shapes,
             );
             if (shape) {
               setPreviewShape(shape);
@@ -178,12 +189,12 @@ export const useCanvasEvents = ({
         const updatedShapes = updateShapePosition(
           shapes,
           startPoint,
-          currentPoint
+          currentPoint,
         );
 
-        const originalShapesMap = new Map(shapes.map(s => [s.id, s]));
+        const originalShapesMap = new Map(shapes.map((s) => [s.id, s]));
 
-        const clonedShapes = updatedShapes.map(shape => {
+        const clonedShapes = updatedShapes.map((shape) => {
           const originalShape = originalShapesMap.get(shape.id);
           if (!originalShape) return shape;
 
@@ -202,21 +213,25 @@ export const useCanvasEvents = ({
             borderRadius: originalShape.borderRadius,
           };
 
-          if (originalShape.type === 'frame') {
+          if (originalShape.type === "frame") {
             return {
               ...baseShape,
               name: originalShape.name,
             };
-          } else if (originalShape.type === 'pencil') {
+          } else if (originalShape.type === "pencil") {
             return {
               ...baseShape,
               points: originalShape.points ? [...originalShape.points] : [],
             };
-          } else if (originalShape.type === 'line') {
+          } else if (originalShape.type === "line") {
             return {
               ...baseShape,
-              startPoint: originalShape.startPoint ? { ...originalShape.startPoint } : undefined,
-              endPoint: originalShape.endPoint ? { ...originalShape.endPoint } : undefined,
+              startPoint: originalShape.startPoint
+                ? { ...originalShape.startPoint }
+                : undefined,
+              endPoint: originalShape.endPoint
+                ? { ...originalShape.endPoint }
+                : undefined,
             };
           }
 
@@ -227,13 +242,13 @@ export const useCanvasEvents = ({
         onShapeUpdate(sortedShapes);
         setStartPoint(currentPoint);
       } else if (selectionBox) {
-        setSelectionBox(prev => ({ ...prev!, endPoint: currentPoint }));
-        const updatedShapes = shapes.map(shape => ({
+        setSelectionBox((prev) => ({ ...prev!, endPoint: currentPoint }));
+        const updatedShapes = shapes.map((shape) => ({
           ...shape,
           isSelected: isShapeInSelectionBox(shape, {
             startPoint: selectionBox.startPoint,
-            endPoint: currentPoint
-          })
+            endPoint: currentPoint,
+          }),
         }));
         onShapeUpdate(updatedShapes);
       }
@@ -253,7 +268,7 @@ export const useCanvasEvents = ({
       updateShapePosition,
       onShapeUpdate,
       getCanvasPoint,
-    ]
+    ],
   );
 
   const handleMouseUp = useCallback(
@@ -263,18 +278,17 @@ export const useCanvasEvents = ({
           onShapeUpdate([...shapes, currentPencilShape]);
           setCurrentPencilShape(null);
         } else if (!hasMoved && startPoint && selectedTool !== "select") {
-          // Create shape with minimum size if it was just a click (no drag)
           const shape = createShape(
             selectedTool,
             startPoint,
-            startPoint, // Same point to trigger minimum size
+            startPoint,
             fillColor,
             strokeColor,
-            shapes
+            shapes,
           );
           if (shape) {
             onShapeUpdate([...shapes, shape]);
-            // Switch back to select tool after creating shape with click
+
             onToolSelect("select");
           }
         } else if (previewShape) {
@@ -282,7 +296,6 @@ export const useCanvasEvents = ({
         }
       }
 
-      // Clean up all state
       setStartPoint(null);
       setIsDrawing(false);
       setIsDragging(false);
@@ -291,7 +304,20 @@ export const useCanvasEvents = ({
       setSelectionBox(null);
       stopPan();
     },
-    [shapes, isDrawing, currentPencilShape, previewShape, hasMoved, startPoint, selectedTool, fillColor, strokeColor, createShape, onShapeUpdate, onToolSelect]
+    [
+      shapes,
+      isDrawing,
+      currentPencilShape,
+      previewShape,
+      hasMoved,
+      startPoint,
+      selectedTool,
+      fillColor,
+      strokeColor,
+      createShape,
+      onShapeUpdate,
+      onToolSelect,
+    ],
   );
 
   return {

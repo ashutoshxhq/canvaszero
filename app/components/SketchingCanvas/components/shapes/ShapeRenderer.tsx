@@ -43,11 +43,13 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             return null;
         }
       })()}
-      {isSelected && onResizeStart && (
-        shape.type === "line" ?
-          <LineResizeHandles shape={shape} onResizeStart={onResizeStart} /> :
+      {isSelected &&
+        onResizeStart &&
+        (shape.type === "line" ? (
+          <LineResizeHandles shape={shape} onResizeStart={onResizeStart} />
+        ) : (
           <ResizeHandles shape={shape} onResizeStart={onResizeStart} />
-      )}
+        ))}
     </>
   );
 };

@@ -14,18 +14,13 @@ function SketchingCanvas() {
   const { shapes, pushHistory, undo, redo } = useHistory();
 
   const handleShapeUpdate = (newShapes: Shape[]) => {
-    console.log('handleShapeUpdate called with shapes:', newShapes);
-    // Update color pickers when shape selection changes
-    const selectedShapes = newShapes.filter(shape => shape.isSelected);
+    const selectedShapes = newShapes.filter((shape) => shape.isSelected);
     if (selectedShapes.length > 0) {
-      // Use the last selected shape's colors
       const lastSelected = selectedShapes[selectedShapes.length - 1];
       setFillColor(lastSelected.fillColor);
       setStrokeColor(lastSelected.strokeColor);
     }
-    console.log('Pushing to history:', newShapes);
     pushHistory([...newShapes]);
-    console.log('After pushing to history');
   };
 
   const handleToolChange = (tool: Tool) => {
@@ -42,17 +37,15 @@ function SketchingCanvas() {
     const hasSelectedShapes = shapes.some((shape) => shape.isSelected);
     const updatedShapes = hasSelectedShapes
       ? shapes.filter((shape) => !shape.isSelected)
-      : []; // Clear all shapes if nothing is selected
+      : [];
     pushHistory(updatedShapes);
   };
 
-  // Add copy-paste functionality
   const { handleCopy, handlePaste } = useCopyPaste({
     shapes,
     onShapeUpdate: handleShapeUpdate,
   });
 
-  // Add keyboard handlers for delete, copy, and paste
   useKeyboard({
     onDelete: handleDelete,
     onCopy: handleCopy,
@@ -61,18 +54,18 @@ function SketchingCanvas() {
 
   const handleFillColorChange = (color: string) => {
     setFillColor(color);
-    // Update selected shapes with new fill color
-    const updatedShapes = shapes.map(shape =>
-      shape.isSelected ? { ...shape, fillColor: color } : shape
+
+    const updatedShapes = shapes.map((shape) =>
+      shape.isSelected ? { ...shape, fillColor: color } : shape,
     );
     pushHistory(updatedShapes);
   };
 
   const handleStrokeColorChange = (color: string) => {
     setStrokeColor(color);
-    // Update selected shapes with new stroke color
-    const updatedShapes = shapes.map(shape =>
-      shape.isSelected ? { ...shape, strokeColor: color } : shape
+
+    const updatedShapes = shapes.map((shape) =>
+      shape.isSelected ? { ...shape, strokeColor: color } : shape,
     );
     pushHistory(updatedShapes);
   };

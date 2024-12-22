@@ -2,7 +2,9 @@ import React from "react";
 import { BaseShapeProps } from "./types";
 import { SELECTION_PADDING } from "../../utils/constants";
 
-const FrameLabel: React.FC<{ shape: BaseShapeProps["shape"] }> = ({ shape }) => {
+const FrameLabel: React.FC<{ shape: BaseShapeProps["shape"] }> = ({
+  shape,
+}) => {
   const dimensions = `${Math.round(shape.width)}×${Math.round(shape.height)}`;
   return (
     <text
@@ -24,8 +26,8 @@ export const Frame: React.FC<BaseShapeProps> = ({
   isSelected,
   onResizeStart,
 }) => {
-  const titleBarHeight = 32; // Height of the browser title bar
-  const contentHeight = Math.max(0, shape.height - titleBarHeight); // Ensure content height is never negative
+  const titleBarHeight = 32;
+  const contentHeight = Math.max(0, shape.height - titleBarHeight);
 
   return (
     <g>

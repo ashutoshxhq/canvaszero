@@ -3,12 +3,7 @@ export type Point = {
   y: number;
 };
 
-export type ShapeType =
-  | "rectangle"
-  | "circle"
-  | "frame"
-  | "pencil"
-  | "line";
+export type ShapeType = "rectangle" | "circle" | "frame" | "pencil" | "line";
 
 export type ResizeHandle =
   | "top-left"

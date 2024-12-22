@@ -15,7 +15,6 @@ export const Pencil: React.FC<BaseShapeProps> = ({ shape, isSelected }) => {
     return `${acc} L ${point.x} ${point.y}`;
   }, "");
 
-  // Get bounding box of the points for selection rectangle
   const boundingBox = getBoundingBox(transformedPoints);
 
   return (

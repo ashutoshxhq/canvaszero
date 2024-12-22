@@ -13,12 +13,10 @@ export const Line: React.FC<BaseShapeProps> = ({
   const x2 = shape.x + shape.width;
   const y2 = shape.y + shape.height;
 
-  // Calculate the angle of the line
   const angle = Math.atan2(y2 - y1, x2 - x1);
-  // Width of the hit area (10px total, 5px on each side of the line)
+
   const hitAreaWidth = 10;
 
-  // Calculate the points for a wider hit area around the line
   const dx = (hitAreaWidth / 2) * Math.sin(angle);
   const dy = (hitAreaWidth / 2) * -Math.cos(angle);
 

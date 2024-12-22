@@ -13,12 +13,10 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
   shape,
   onResizeStart,
 }) => {
-  // Calculate handle positions based on shape type and selection padding
   const getHandlePositions = () => {
     let box;
 
     if (shape.type === "pencil" && shape.points) {
-      // Transform points based on current scale and position
       const transformedPoints = transformPoints(shape.points, shape.scale);
       const pointsBox = getBoundingBox(transformedPoints);
 
@@ -29,7 +27,6 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
         height: pointsBox.height + SELECTION_PADDING * 2,
       };
     } else {
-      // For other shapes, use regular bounds plus padding
       box = {
         x: shape.x - SELECTION_PADDING,
         y: shape.y - SELECTION_PADDING,

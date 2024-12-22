@@ -32,7 +32,7 @@ function initializeResizeValues(shape: Shape): ResizeResult {
 function calculateScale(
   newWidth: number,
   newHeight: number,
-  originalBox: { width: number; height: number }
+  originalBox: { width: number; height: number },
 ): { x: number; y: number } {
   return {
     x: newWidth / (originalBox.width || 1),
@@ -43,7 +43,7 @@ function calculateScale(
 function handleTopLeftResize(
   shape: Shape,
   movementX: number,
-  movementY: number
+  movementY: number,
 ): ResizeResult {
   const { fixedRight, fixedBottom } = getFixedPoints(shape);
   const newWidth = Math.max(MIN_SIZE, fixedRight - (shape.x + movementX));
@@ -60,7 +60,7 @@ function handleTopLeftResize(
 function handleTopRightResize(
   shape: Shape,
   movementX: number,
-  movementY: number
+  movementY: number,
 ): ResizeResult {
   const { fixedLeft, fixedBottom } = getFixedPoints(shape);
   const newWidth = Math.max(MIN_SIZE, shape.width + movementX);
@@ -77,7 +77,7 @@ function handleTopRightResize(
 function handleBottomLeftResize(
   shape: Shape,
   movementX: number,
-  movementY: number
+  movementY: number,
 ): ResizeResult {
   const { fixedRight, fixedTop } = getFixedPoints(shape);
   const newWidth = Math.max(MIN_SIZE, fixedRight - (shape.x + movementX));
@@ -94,7 +94,7 @@ function handleBottomLeftResize(
 function handleBottomRightResize(
   shape: Shape,
   movementX: number,
-  movementY: number
+  movementY: number,
 ): ResizeResult {
   const { fixedLeft, fixedTop } = getFixedPoints(shape);
   const newWidth = Math.max(MIN_SIZE, shape.width + movementX);
@@ -112,7 +112,7 @@ function handleAspectRatioResize(
   shape: Shape,
   handle: ResizeHandle,
   movementX: number,
-  movementY: number
+  movementY: number,
 ): ResizeResult {
   const aspectRatio = shape.width / shape.height;
   const { fixedRight, fixedBottom, fixedLeft, fixedTop } =
@@ -177,10 +177,9 @@ function handleAspectRatioResize(
 export function calculateLineResize(
   shape: Shape,
   handle: ResizeHandle,
-  currentPoint: Point
+  currentPoint: Point,
 ): ResizeResult {
   if (handle === "start") {
-    // When dragging start point, keep end point fixed
     return {
       x: currentPoint.x,
       y: currentPoint.y,
@@ -188,7 +187,6 @@ export function calculateLineResize(
       height: shape.y + shape.height - currentPoint.y,
     };
   } else if (handle === "end") {
-    // When dragging end point, keep start point fixed
     return {
       x: shape.x,
       y: shape.y,
@@ -211,13 +209,12 @@ export function calculatePencilResize(
   handle: ResizeHandle,
   movementX: number,
   movementY: number,
-  keepAspectRatio: boolean = false
+  keepAspectRatio: boolean = false,
 ): ResizeResult {
   if (!shape.points || !originalShape.points) {
     return initializeResizeValues(shape);
   }
 
-  // Fixed anchor points that should never move during resize
   const fixedAnchors = {
     topLeft: { x: shape.x, y: shape.y },
     topRight: { x: shape.x + shape.width, y: shape.y },
@@ -232,25 +229,22 @@ export function calculatePencilResize(
 
   switch (handle) {
     case "bottom-left": {
-      // Fix top-right corner
       const anchor = fixedAnchors.topRight;
       newWidth = Math.max(MIN_SIZE, anchor.x - (shape.x + movementX));
       newHeight = Math.max(MIN_SIZE, shape.height + movementY);
       newX = anchor.x - newWidth;
-      newY = anchor.y; // Keep top edge fixed
+      newY = anchor.y;
       break;
     }
     case "bottom-right": {
-      // Fix top-left corner
       const anchor = fixedAnchors.topLeft;
       newWidth = Math.max(MIN_SIZE, shape.width + movementX);
       newHeight = Math.max(MIN_SIZE, shape.height + movementY);
-      newX = anchor.x; // Keep left edge fixed
-      newY = anchor.y; // Keep top edge fixed
+      newX = anchor.x;
+      newY = anchor.y;
       break;
     }
     case "top-left": {
-      // Fix bottom-right corner
       const anchor = fixedAnchors.bottomRight;
       newWidth = Math.max(MIN_SIZE, anchor.x - (shape.x + movementX));
       newHeight = Math.max(MIN_SIZE, anchor.y - (shape.y + movementY));
@@ -259,11 +253,10 @@ export function calculatePencilResize(
       break;
     }
     case "top-right": {
-      // Fix bottom-left corner
       const anchor = fixedAnchors.bottomLeft;
       newWidth = Math.max(MIN_SIZE, shape.width + movementX);
       newHeight = Math.max(MIN_SIZE, anchor.y - (shape.y + movementY));
-      newX = anchor.x; // Keep left edge fixed
+      newX = anchor.x;
       newY = anchor.y - newHeight;
       break;
     }
@@ -320,7 +313,6 @@ export function calculatePencilResize(
     }
   }
 
-  // Calculate scale based on original box
   const originalBox = getBoundingBox(originalShape.points);
   const scale = {
     x: newWidth / originalBox.width,
@@ -341,7 +333,7 @@ export function calculateRectangleResize(
   handle: ResizeHandle,
   movementX: number,
   movementY: number,
-  keepAspectRatio: boolean = false
+  keepAspectRatio: boolean = false,
 ): ResizeResult {
   if (keepAspectRatio) {
     return handleAspectRatioResize(shape, handle, movementX, movementY);

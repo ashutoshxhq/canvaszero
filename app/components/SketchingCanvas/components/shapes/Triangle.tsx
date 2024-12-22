@@ -1,5 +1,5 @@
-import React from 'react';
-import { BaseShapeProps } from './types';
+import React from "react";
+import { BaseShapeProps } from "./types";
 
 export const Triangle: React.FC<BaseShapeProps> = ({ shape, isSelected }) => {
   const points = `
@@ -14,7 +14,7 @@ export const Triangle: React.FC<BaseShapeProps> = ({ shape, isSelected }) => {
       fill={shape.fillColor}
       stroke={shape.strokeColor}
       strokeWidth="2"
-      className={isSelected ? 'outline outline-2 outline-blue-500' : ''}
+      className={isSelected ? "outline outline-2 outline-blue-500" : ""}
     />
   );
 };

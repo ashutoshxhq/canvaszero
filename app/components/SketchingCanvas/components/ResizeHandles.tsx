@@ -18,19 +18,19 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
     {
       x: Math.min(shape.startPoint.x, shape.endPoint.x),
       y: Math.min(shape.startPoint.y, shape.endPoint.y),
-    }, // top-left
+    },
     {
       x: Math.max(shape.startPoint.x, shape.endPoint.x),
       y: Math.min(shape.startPoint.y, shape.endPoint.y),
-    }, // top-right
+    },
     {
       x: Math.max(shape.startPoint.x, shape.endPoint.x),
       y: Math.max(shape.startPoint.y, shape.endPoint.y),
-    }, // bottom-right
+    },
     {
       x: Math.min(shape.startPoint.x, shape.endPoint.x),
       y: Math.max(shape.startPoint.y, shape.endPoint.y),
-    }, // bottom-left
+    },
   ];
 
   const handleMouseDown = (e: React.MouseEvent, handleIndex: number) => {
@@ -62,19 +62,18 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
       let newStartPoint: Point = { ...originalStartPoint };
       let newEndPoint: Point = { ...originalEndPoint };
 
-      // Determine which corner is being dragged and update accordingly
       switch (handleIndex) {
-        case 0: // top-left
+        case 0:
           newStartPoint = currentPoint;
           break;
-        case 1: // top-right
+        case 1:
           newStartPoint = { ...newStartPoint, y: currentPoint.y };
           newEndPoint = { ...newEndPoint, x: currentPoint.x };
           break;
-        case 2: // bottom-right
+        case 2:
           newEndPoint = currentPoint;
           break;
-        case 3: // bottom-left
+        case 3:
           newStartPoint = { ...newStartPoint, x: currentPoint.x };
           newEndPoint = { ...newEndPoint, y: currentPoint.y };
           break;

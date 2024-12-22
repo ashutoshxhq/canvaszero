@@ -21,7 +21,7 @@ export const getBoundingBox = (points: Point[]) => {
 
 export const transformPoints = (
   points: Point[],
-  scale: { x: number; y: number }
+  scale: { x: number; y: number },
 ): Point[] => {
   return points.map((point) => ({
     x: point.x * scale.x,
@@ -29,11 +29,10 @@ export const transformPoints = (
   }));
 };
 
-// Calculate distance from point to line segment
 const distanceToLineSegment = (
   point: Point,
   lineStart: Point,
-  lineEnd: Point
+  lineEnd: Point,
 ): number => {
   const { x: px, y: py } = point;
   const { x: x1, y: y1 } = lineStart;
@@ -77,7 +76,7 @@ export const isPointInShape = (shape: Shape, point: Point): boolean => {
   if (shape.type === "line") {
     const lineStart = { x: shape.x, y: shape.y };
     const lineEnd = { x: shape.x + shape.width, y: shape.y + shape.height };
-    // Consider the point within the line if it's within 5 pixels of the line segment
+
     return distanceToLineSegment(point, lineStart, lineEnd) <= 5;
   }
 
@@ -105,8 +104,10 @@ export const isPointInShape = (shape: Shape, point: Point): boolean => {
   );
 };
 
-export const isShapeInSelectionBox = (shape: Shape, selectionBox: SelectionBox): boolean => {
-  // Normalize selection box coordinates
+export const isShapeInSelectionBox = (
+  shape: Shape,
+  selectionBox: SelectionBox,
+): boolean => {
   const minX = Math.min(selectionBox.startPoint.x, selectionBox.endPoint.x);
   const maxX = Math.max(selectionBox.startPoint.x, selectionBox.endPoint.x);
   const minY = Math.min(selectionBox.startPoint.y, selectionBox.endPoint.y);
@@ -130,7 +131,6 @@ export const isShapeInSelectionBox = (shape: Shape, selectionBox: SelectionBox):
     };
   }
 
-  // Check if the shape's bounding box intersects with the selection box
   return !(
     shapeBox.x + shapeBox.width < minX ||
     shapeBox.x > maxX ||

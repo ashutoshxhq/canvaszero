@@ -60,10 +60,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button
               key={id}
               onClick={() => onToolSelect(id as Tool)}
-              className={`p-2 rounded-lg transition-colors ${selectedTool === id
-                ? "bg-blue-100 text-blue-600"
-                : "hover:bg-gray-100 text-gray-700"
-                }`}
+              className={`p-2 rounded-lg transition-colors ${
+                selectedTool === id
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100 text-gray-700"
+              }`}
               title={id.charAt(0).toUpperCase() + id.slice(1)}
             >
               <Icon size={20} />
@@ -112,8 +113,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </button>
           <button
             onClick={onToggleLock}
-            className={`p-2 rounded-lg transition-colors ${isToolLocked ? "text-blue-600" : "text-gray-700"
-              } hover:bg-gray-100`}
+            className={`p-2 rounded-lg transition-colors ${
+              isToolLocked ? "text-blue-600" : "text-gray-700"
+            } hover:bg-gray-100`}
             title={isToolLocked ? "Unlock Tool" : "Lock Tool"}
           >
             {isToolLocked ? <Lock size={20} /> : <Unlock size={20} />}

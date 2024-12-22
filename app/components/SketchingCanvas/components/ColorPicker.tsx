@@ -56,10 +56,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         },
       ],
       placement: "top",
-    }
+    },
   );
 
-  // Close picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
