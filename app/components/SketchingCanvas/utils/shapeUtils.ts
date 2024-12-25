@@ -76,11 +76,10 @@ export const isPointInShape = (shape: Shape, point: Point): boolean => {
   if (shape.type === "line") {
     const lineStart = { x: shape.x, y: shape.y };
     const lineEnd = { x: shape.x + shape.width, y: shape.y + shape.height };
-
     return distanceToLineSegment(point, lineStart, lineEnd) <= 5;
   }
 
-  const shapeBox = {
+  let shapeBox = {
     x: shape.x,
     y: shape.y,
     width: shape.width,
@@ -96,11 +95,28 @@ export const isPointInShape = (shape: Shape, point: Point): boolean => {
     shapeBox.height = box.height;
   }
 
+  // Convert canvas coordinates to shape coordinates
+  const shapeX = x - shapeBox.x;
+  const shapeY = y - shapeBox.y;
+
+  console.log('Hit detection:', {
+    type: shape.type,
+    point: { x, y },
+    shapeBox,
+    shapeCoords: { x: shapeX, y: shapeY },
+    isHit: (
+      shapeX >= 0 &&
+      shapeX <= shapeBox.width &&
+      shapeY >= 0 &&
+      shapeY <= shapeBox.height
+    )
+  });
+
   return (
-    x >= shapeBox.x &&
-    x <= shapeBox.x + shapeBox.width &&
-    y >= shapeBox.y &&
-    y <= shapeBox.y + shapeBox.height
+    shapeX >= 0 &&
+    shapeX <= shapeBox.width &&
+    shapeY >= 0 &&
+    shapeY <= shapeBox.height
   );
 };
 
@@ -128,6 +144,14 @@ export const isShapeInSelectionBox = (
       y: shape.y + box.y,
       width: box.width,
       height: box.height,
+    };
+  } else if (shape.type === "text") {
+    // For text shapes, use the actual dimensions
+    shapeBox = {
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height,
     };
   }
 

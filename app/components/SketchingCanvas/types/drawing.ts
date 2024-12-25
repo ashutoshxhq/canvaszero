@@ -3,7 +3,7 @@ export type Point = {
   y: number;
 };
 
-export type ShapeType = "rectangle" | "circle" | "frame" | "pencil" | "line";
+export type ShapeType = "rectangle" | "circle" | "frame" | "pencil" | "line" | "text";
 
 export type ResizeHandle =
   | "top-left"
@@ -35,9 +35,13 @@ export type Shape = {
   borderRadius?: number;
   startPoint?: Point;
   endPoint?: Point;
+  text?: string;
+  fontSize?: number;
+  isEditing?: boolean;
+  isNew?: boolean;
 };
 
-export type Tool = ShapeType | "select";
+export type Tool = ShapeType | "select" | "pan";
 
 export type SelectionBox = {
   startPoint: Point;

@@ -7,6 +7,7 @@ import { Pencil } from "./Pencil";
 import { Line } from "./Line";
 import { ResizeHandles } from "../resize/ResizeHandles";
 import { LineResizeHandles } from "../resize/LineResizeHandles";
+import { Text } from "./Text";
 
 interface ShapeRendererProps {
   shape: Shape;
@@ -39,6 +40,8 @@ export const ShapeRenderer: React.FC<ShapeRendererProps> = ({
             return <Pencil {...props} />;
           case "line":
             return <Line {...props} />;
+          case "text":
+            return <Text {...props} />;
           default:
             return null;
         }

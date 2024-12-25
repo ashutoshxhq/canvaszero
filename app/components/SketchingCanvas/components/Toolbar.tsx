@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Palette,
+  Type,
 } from "lucide-react";
 import { ColorPicker } from "./ColorPicker";
 
@@ -55,6 +56,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { id: "circle", icon: Circle },
     { id: "line", icon: Minus },
     { id: "pencil", icon: Pencil },
+    { id: "text", icon: Type },
   ];
 
   return (

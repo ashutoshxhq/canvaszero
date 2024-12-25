@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from "react";
-import { Point, Shape, Tool, ResizeHandle } from "../types/drawing";
+import React, { useRef } from "react";
+import { Point, Shape, Tool, SelectionBox } from "../types/drawing";
 import { useDrawing } from "../hooks/useDrawing";
 import { useViewport } from "../hooks/useViewport";
 import { useShapeInteractions } from "../hooks/useShapeInteractions";
@@ -54,19 +54,17 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   const {
     isDrawing,
-    isDragging,
     previewShape,
     selectionBox,
     handleMouseDown,
     handleMouseMove,
-    handleMouseUp: baseHandleMouseUp,
+    handleMouseUp,
   } = useCanvasEvents({
     shapes,
     selectedTool,
     fillColor,
     strokeColor,
     onShapeUpdate,
-    onToolSelect,
     getCanvasPoint,
     updateShapePosition,
     canvasRef,
@@ -74,22 +72,40 @@ export const Canvas: React.FC<CanvasProps> = ({
     pan,
   });
 
-  const handleMouseUp = () => {
-    baseHandleMouseUp(stopPan);
-    if (previewShape) {
-      onShapeComplete();
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (selectedTool === "select") {
+      const point = getCanvasPoint(e.clientX, e.clientY);
+      if (point) {
+        handleShapeSelection(shapes, point, e.shiftKey);
+      }
+      return;
+    }
+
+    if (e.target instanceof SVGElement || e.target instanceof SVGGElement) {
+      handleMouseDown(e as React.MouseEvent<SVGSVGElement>);
     }
   };
 
-  useEffect(() => {
-    const element = canvasRef.current;
-    if (!element) return;
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (e.target instanceof SVGElement || e.target instanceof SVGGElement) {
+      if (isResizing) {
+        handleResizeMove(e as React.MouseEvent<SVGSVGElement>, isResizing, calculateResize);
+      } else {
+        handleMouseMove(e as React.MouseEvent<SVGSVGElement>);
+      }
+    }
+  };
 
-    element.addEventListener("wheel", handleWheel, { passive: false });
-    return () => element.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
-
-  const sortedShapes = sortShapesByType(shapes);
+  const onMouseUp = () => {
+    if (isResizing) {
+      handleResizeEnd(endResize);
+    } else {
+      handleMouseUp({} as React.MouseEvent<SVGSVGElement>);
+      if (previewShape) {
+        onShapeComplete();
+      }
+    }
+  };
 
   const bounds = shapes.reduce(
     (acc, shape) => ({
@@ -98,7 +114,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       maxX: Math.max(acc.maxX, shape.x + shape.width),
       maxY: Math.max(acc.maxY, shape.y + shape.height),
     }),
-    { minX: 0, minY: 0, maxX: 2000, maxY: 2000 },
+    { minX: 0, minY: 0, maxX: 2000, maxY: 2000 }
   );
 
   const padding = 1000;
@@ -112,102 +128,18 @@ export const Canvas: React.FC<CanvasProps> = ({
       style={{
         cursor:
           selectedTool === "select"
-            ? isDragging
-              ? "grabbing"
-              : "default"
-            : "crosshair",
+            ? "default"
+            : selectedTool === "text"
+              ? "text"
+              : "crosshair",
         touchAction: "none",
       }}
-      onMouseDown={(e) => handleMouseDown(e, startPan, handleShapeSelection)}
-      onMouseMove={(e) => {
-        if (isResizing) {
-          handleResizeMove(e, isResizing, calculateResize);
-        } else {
-          handleMouseMove(e, updatePan, setPan);
-        }
-      }}
-      onMouseUp={() => {
-        if (isResizing) {
-          handleResizeEnd(endResize);
-        } else {
-          handleMouseUp();
-        }
-      }}
-      onMouseLeave={() => {
-        if (isResizing) {
-          handleResizeEnd(endResize);
-        } else {
-          handleMouseUp();
-        }
-      }}
+      onWheel={(e) => handleWheel(e.nativeEvent)}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
       onContextMenu={(e) => e.preventDefault()}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const point = getCanvasPoint(touch.clientX, touch.clientY);
-        if (!point) return;
-
-        handleMouseDown(
-          {
-            button: 0,
-            clientX: touch.clientX,
-            clientY: touch.clientY,
-            preventDefault: () => { },
-            stopPropagation: () => { },
-            altKey: false,
-            shiftKey: false,
-          } as React.MouseEvent,
-          startPan,
-          handleShapeSelection
-        );
-      }}
-      onTouchMove={(e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const point = getCanvasPoint(touch.clientX, touch.clientY);
-        if (!point) return;
-
-        if (isResizing) {
-          handleResizeMove(
-            {
-              clientX: touch.clientX,
-              clientY: touch.clientY,
-              preventDefault: () => { },
-            } as React.MouseEvent,
-            isResizing,
-            calculateResize
-          );
-        } else {
-          handleMouseMove(
-            {
-              buttons: 1,
-              clientX: touch.clientX,
-              clientY: touch.clientY,
-              preventDefault: () => { },
-              stopPropagation: () => { },
-              altKey: false,
-            } as React.MouseEvent,
-            updatePan,
-            setPan
-          );
-        }
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        if (isResizing) {
-          handleResizeEnd(endResize);
-        } else {
-          handleMouseUp();
-        }
-      }}
-      onTouchCancel={(e) => {
-        e.preventDefault();
-        if (isResizing) {
-          handleResizeEnd(endResize);
-        } else {
-          handleMouseUp();
-        }
-      }}
     >
       <Grid zoom={zoom} pan={pan} />
 
@@ -228,53 +160,30 @@ export const Canvas: React.FC<CanvasProps> = ({
             top: -padding + bounds.minY,
             touchAction: "none",
           }}
-          viewBox={`${-padding + bounds.minX} ${-padding + bounds.minY
-            } ${viewBoxWidth} ${viewBoxHeight}`}
+          viewBox={`${-padding + bounds.minX} ${-padding + bounds.minY} ${viewBoxWidth} ${viewBoxHeight}`}
         >
-          {/* Render frames first (background) */}
-          {sortedShapes
-            .filter((shape) => shape.type === "frame")
-            .map((shape) => {
-              return (
-                <g key={shape.id} className="frame-layer">
-                  <ShapeRenderer
-                    shape={shape}
-                    isSelected={shape.isSelected}
-                    onResizeStart={(handle, e) =>
-                      handleResizeStart(handle, e, startResize)
-                    }
-                  />
-                </g>
-              );
-            })}
-
-          {/* Render non-frame shapes on top */}
-          {sortedShapes
-            .filter((shape) => shape.type !== "frame")
-            .map((shape) => {
-              return (
-                <g key={shape.id} className="shape-layer">
-                  <ShapeRenderer
-                    shape={shape}
-                    isSelected={shape.isSelected}
-                    onResizeStart={(handle, e) =>
-                      handleResizeStart(handle, e, startResize)
-                    }
-                  />
-                </g>
-              );
-            })}
+          {sortShapesByType(shapes).map((shape) => (
+            <g key={shape.id} className={shape.type === "frame" ? "frame-layer" : "shape-layer"}>
+              <ShapeRenderer
+                shape={shape}
+                isSelected={shape.isSelected}
+                onResizeStart={(handle, e) =>
+                  handleResizeStart(handle, e, startResize)
+                }
+              />
+            </g>
+          ))}
 
           {previewShape && <ShapeRenderer shape={previewShape} />}
           {selectionBox && (
             <rect
-              x={Math.min(selectionBox.startPoint.x, selectionBox.endPoint.x)}
-              y={Math.min(selectionBox.startPoint.y, selectionBox.endPoint.y)}
+              x={Math.min(selectionBox.startPoint?.x || 0, selectionBox.endPoint?.x || 0)}
+              y={Math.min(selectionBox.startPoint?.y || 0, selectionBox.endPoint?.y || 0)}
               width={Math.abs(
-                selectionBox.endPoint.x - selectionBox.startPoint.x,
+                (selectionBox.endPoint?.x || 0) - (selectionBox.startPoint?.x || 0)
               )}
               height={Math.abs(
-                selectionBox.endPoint.y - selectionBox.startPoint.y,
+                (selectionBox.endPoint?.y || 0) - (selectionBox.startPoint?.y || 0)
               )}
               fill="rgba(37, 99, 235, 0.1)"
               stroke="#2563eb"

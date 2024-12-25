@@ -27,6 +27,23 @@ export const useDrawing = () => {
         borderRadius: 8,
       };
 
+      if (type === "text") {
+        return {
+          ...baseShape,
+          x: startPoint.x,
+          y: startPoint.y,
+          width: 200,
+          height: 100,
+          text: "",
+          fontSize: 16,
+          isEditing: true,
+          fillColor: "transparent",
+          isSelected: true,
+          borderRadius: 0,
+          strokeColor: "#000000",
+        };
+      }
+
       if (type === "pencil") {
         return {
           ...baseShape,
